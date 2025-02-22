@@ -1,7 +1,6 @@
 #[cfg(test)]
 mod sha1 {
     use super::*;
-    use crate::bits::Bits;
     use crate::sha::Sha1;
 
     macro_rules! functionnal_tests {
@@ -72,7 +71,6 @@ mod sha1 {
 #[cfg(test)]
 mod sha256 {
     use super::*;
-    use crate::bits::Bits;
     use crate::sha::Sha256;
     use std::fs;
 
@@ -84,6 +82,7 @@ mod sha256 {
                     let (data, expected) = $args;
                     let mut sha:Sha256 = Sha256::new();
                     sha.update(&data.as_bytes());
+                    sha.digest();
                     let result = sha.digest_string();
                     assert_eq!(result, expected);
                 }
@@ -103,6 +102,8 @@ mod sha256 {
                         .expect("failed to read");
                     
                     sha.update(&content.as_bytes());
+                    sha.digest();
+
                     let result = sha.digest_string();
                     
                     assert_eq!(result, expected);
@@ -187,64 +188,3 @@ mod sha256 {
         ),
     }
 }
-
-/*
-#[cfg(test)]
-mod unit {
-    use super::*;
-    use crate::bits::Bits;
-
-    macro_rules! rotR_tests {
-        ($($name:ident: $args:expr,)*) => {
-            $(
-                #[test]
-                fn $name() {
-                    let (data, rot_nb, expected) = $args;
-                    let mut raw_bits = Bits::new(&data);
-                    raw_bits.rotR(rot_nb);
-                    assert_eq!(raw_bits.value, expected);
-                }
-            )*
-        }
-    }
-    macro_rules! circular_rotR_tests {
-        ($($name:ident: $args:expr,)*) => {
-            $(
-                #[test]
-                fn $name() {
-                    let (data, rot_nb, expected) = $args;
-                    let mut raw_bits = Bits::new(&data);
-                    raw_bits.circular_rotR(rot_nb);
-                    assert_eq!(raw_bits.value, expected);
-                }
-            )*
-        }
-    }
-    
-    rotR_tests! {
-        rot_no_byte: (vec![], 8, vec![]),
-        rot_empty: (vec![0,0,0], 8, vec![0,0,0]),
-        rot_empty_not_round: (vec![0,0,0], 17, vec![0,0,0]),
-        rot_single_quad: (vec![32], 2, vec![8]),
-        rot_single_quad_bis: (vec![2 << 31], 31, vec![1]),
-        rot_single_quad_too_much: (vec![32], 32, vec![0]),
-        rot_two_quad: (vec![32, 32], 2, vec![8, 8]),
-        rot_two_quad_tricky: (vec![1, 0], 1, vec![0, 1 << 31]),
-        rot_two_quad_tricky_bis: (vec![31, 0], 2, vec![7, (1 << 31) + (1 << 30)]),
-    }
-
-    circular_rotR_tests! {
-        circ_single_byte: (vec![32], 6, vec![1 << 31]),
-        circ_empty_and_byte: (vec![64, 0, 0], 65, vec![0, 0, 32]),
-        circ_empty_and_whole_rot: (vec![64, 0, 0], 128 , vec![0, 64, 0]),
-        circ_two_bytes: (vec![32, 32], 6, vec![1 << 31, 1 << 31]),
-        circ_two_bytes_bis: (vec![1, 0], 32, vec![0, 1]),
-        circ_two_bytes_tricky: (vec![1, 0], 33, vec![1 << 31, 0]),
-        circ_two_bytes_tricky_bis: (vec![31, 0], 2, vec![7, (1 << 31) + (1 << 30)]),
-        circ_three_bytes_tricky: (vec![7, 7, 1],
-                                  1,
-                                  vec![(1 << 31) + 3, (1 << 31) + 3, 1 << 31]
-                                 ),
-    }
-}
-*/

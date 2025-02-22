@@ -17,7 +17,6 @@ pub enum Blocks {
    SHA1(BlockSHA1),
 }
 
-
 #[derive(Debug, Clone)]
 pub struct BlockSHA1 {
     // 64 * 32 bits = 2048 bits
@@ -132,7 +131,8 @@ impl Block {
 #[derive(Debug, Clone)]
 pub struct Sha256 {
     variables: [u32;8], // fixed size of 8 : [a,b,c,d,e,f,g,h] in the paper
-    size: usize // the number of blocks processed
+    size: usize, // the number of blocks processed
+    leftover: Vec<u8>
 }
 
 impl Sha256 {
@@ -140,29 +140,40 @@ impl Sha256 {
     {
         let size = 0;
         let variables = sha256_init.clone();
+        let leftover = vec![];
 
         Sha256 {
             variables,
-            size
+            size,
+            leftover
         }
     }
+
     pub fn update(&mut self, data:&[u8])
     {
-        let mut iter = data.chunks(64);
         self.size += data.len();
+        self.leftover.append(&mut Vec::from(data));
 
-        let leftover = iter.next_back().unwrap_or_else(|| &[]);
+        let bind = self.leftover.clone();
+
+        let mut iter = bind.chunks(64);
+        self.leftover = iter.next_back().unwrap_or_else(|| &[]).to_vec();
+
         iter.for_each(|slice| Block::new(&chunky(slice)).process(self));
-
-        padding(leftover, self.size).iter()
-            .for_each(|raw_block| Block::new(raw_block).process(self));
     }
+
     /// #RETURNS
     ///
     /// A 32 bytes array 
-    pub fn digest(&self) -> [u8; 32] {
+    pub fn digest_arr(&self) -> [u8; 32] {
         arru32_to_u8(&self.variables)
     }
+
+    pub fn digest(&mut self) {
+        padding(&self.leftover, self.size).iter()
+            .for_each(|raw_block| Block::new(raw_block).process(self));
+    }
+
     pub fn digest_string(&self) -> String {
         self.variables.iter().map(|x| format!("{:08x}", x)).collect::<String>()
     }

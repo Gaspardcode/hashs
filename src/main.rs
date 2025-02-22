@@ -1,5 +1,4 @@
 mod testsuite;
-mod bits;
 mod sha;
 use crate::sha::*;
 fn main() {
