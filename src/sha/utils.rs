@@ -119,8 +119,11 @@ pub fn chunky(src:&[u8]) -> [u32;16]
     .collect::<Vec<u32>>().try_into().expect("conversion failed")
 }
 
-pub fn padding_blocksSHA1(src:&[u8], blocks: &mut Vec<BlockSHA1>, messageL:usize)
+pub fn padding(src:&[u8], messageL:usize) 
+-> Vec<[u32;16]>
 {
+    let mut blocks = vec![];
+
     let mut copy:[u8;64] = [0;64];
     let datalength = src.len() * 8;
 
@@ -137,7 +140,7 @@ pub fn padding_blocksSHA1(src:&[u8], blocks: &mut Vec<BlockSHA1>, messageL:usize
 
     // blocks need to be 512 bits at most
     if datalength == 512 && (padding_block[15] & 1) == 1{
-        blocks.push(BlockSHA1::new(&padding_block));
+        blocks.push(padding_block);
         padding_block = [0; 16];
         padding_block[0] = 1 << 31;
     }
@@ -159,77 +162,19 @@ pub fn padding_blocksSHA1(src:&[u8], blocks: &mut Vec<BlockSHA1>, messageL:usize
 
         // length takes 64 bits, hence we must create a new block
         if datalength >= 448 {
-            blocks.push(BlockSHA1::new(&padding_block));
+            blocks.push(padding_block);
             padding_block = [0; 16];
         }
     }
 
-    let message_length:u64 = (src.len() as u64) * (8 as u64);
+    let message_length:u64 = (messageL as u64) * (8 as u64);
     padding_block[14] = (message_length >> 32) as u32;
     padding_block[15] = message_length as u32;
-    blocks.push(BlockSHA1::new(&padding_block));
+    blocks.push(padding_block);
+
+    blocks
 }
-pub fn padding_blocks(src:&[u8], start:usize, blocks: &mut Vec<Block>)
-{
-    let mut padding_block: [u32; 16] = [0;16];
-    let mut i = start;
-    let data_length = 8 * (src.len() - start);
-    let mut k = 0;
-    while k < 16 {
-        if i + 4 >= src.len()
-        {
-            let mut end:[u8;4] = [0;4];
-            let offset = i;
 
-            while i < src.len()
-            {
-                end[i - offset] = src[i];
-                i += 1;
-            }
-
-            padding_block[k] = v2u32BE(end[0], end[1], end[2], end[3]);
-            break;
-        }
-
-        padding_block[k] = v2u32BE(src[i], src[i + 1], src[i + 2], src[i + 3]);
-        i += 4;
-        k += 1;
-    }
-
-    // blocks need to be 512 bits at most
-    if data_length == 512 && (padding_block[15] & 1) == 1{
-        blocks.push(Block::new(&padding_block));
-        padding_block = [0; 16];
-        padding_block[0] = 1 << 31;
-    }
-    else if data_length == 0 {
-        padding_block[0] = 1 << 31;
-    }
-    else {
-        let tmp = padd_a_one(padding_block[k]);
-
-        // if a bit was added, replace with the new data
-        if padding_block[k] != tmp {
-            padding_block[k] = tmp;
-        }
-        // current elt has LSB worth 1, hence we append the 1 on the next
-        // out of bound is excluded with previous if
-        else {
-           padding_block[k + 1] = 1 << 31; 
-        }
-
-        // length takes 64 bits, hence we must create a new block
-        if data_length >= 448 {
-            blocks.push(Block::new(&padding_block));
-            padding_block = [0; 16];
-        }
-    }
-
-    let message_length:u64 = (src.len() as u64) * (8 as u64);
-    padding_block[14] = (message_length >> 32) as u32;
-    padding_block[15] = message_length as u32;
-    blocks.push(Block::new(&padding_block));
-}
 // adds a padding 1 after the rightmost filled byte
 // returns the number given in param if the insertion took place
 fn padd_a_one(nb:u32) -> u32
@@ -244,23 +189,9 @@ fn padd_a_one(nb:u32) -> u32
         shift += 1;
     }
 
-    x >>= (1 + (shift & 7));
-    // setting a bit to 1
-    // the bit we are interested in
-    return nb | x;
-}
-// adds a padding 1 after the rightmost 1 bit
-// returns the number given in param if the insertion took place
-fn padd_one_bit(nb:u32) -> u32
-{
-    let mut x = 1;
-    if nb & x == 1 {
-        return nb;
+    if shift < 31 {
+        x >>= (1 + (shift & 7));
     }
-    while nb & x == 0 {
-        x <<= 1;
-    }
-    x >>= 1;
     // setting a bit to 1
     // the bit we are interested in
     return nb | x;

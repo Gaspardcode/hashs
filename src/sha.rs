@@ -5,10 +5,18 @@ use crate::sha::utils::*;
 
 // TODO later on merge the SHAS into an enum
 
+#[derive(Debug, Clone)]
 pub enum Hash {
    SHA256(Sha256),
    SHA1(Sha1),
 }
+
+#[derive(Debug, Clone)]
+pub enum Blocks {
+   SHA256(Block),
+   SHA1(BlockSHA1),
+}
+
 
 #[derive(Debug, Clone)]
 pub struct BlockSHA1 {
@@ -140,18 +148,14 @@ impl Sha256 {
     }
     pub fn update(&mut self, data:&[u8])
     {
-        let mut blocks:Vec<Block> = vec![];
-
         let mut iter = data.chunks(64);
-        let leftover = iter.next_back().unwrap_or_else(|| &[]);
-        iter.for_each(|slice| blocks.push(Block::new(&chunky(slice))));
+        self.size += data.len();
 
-        padding_blocks(leftover, &mut blocks, data.len());
-        
-        for block in blocks.iter() {
-            block.process(self);
-            println!("{:?}", self.variables);
-        }
+        let leftover = iter.next_back().unwrap_or_else(|| &[]);
+        iter.for_each(|slice| Block::new(&chunky(slice)).process(self));
+
+        padding(leftover, self.size).iter()
+            .for_each(|raw_block| Block::new(raw_block).process(self));
     }
     /// #RETURNS
     ///
@@ -168,7 +172,7 @@ impl Sha256 {
 pub struct Sha1 {
     variables: [u32;5], // fixed size of 8 : [a,b,c,d,e] in the paper
     size: usize, // the number of blocks processed
-    leftover: [u32;16]
+    leftover: Vec<u8>,
 }
 
 impl Sha1 {
@@ -176,38 +180,41 @@ impl Sha1 {
     {
         let size = 0;
         let variables = sha1_init.clone();
-        let leftover = [0; 16];
+        let leftover = vec![];
 
         Sha1 {
             variables,
             size,
-            leftover
+            leftover,
         }
     }
 
     pub fn update(&mut self, data:&[u8])
     {
-        let mut blocks:Vec<BlockSHA1> = vec![];
+        self.size += data.len();
+        self.leftover.append(&mut Vec::from(data));
 
-        let mut iter = data.chunks(64);
-        let leftover = iter.next_back().unwrap_or_else(|| &[]);
-        iter.for_each(|slice| blocks.push(BlockSHA1::new(&chunky(slice))));
+        let bind = self.leftover.clone();
 
-        padding_blocksSHA1(leftover, &mut blocks, data.len());
-        
-        for block in blocks.iter() {
-            block.process(self);
-        }
+        let mut iter = bind.chunks(64);
+        self.leftover = iter.next_back().unwrap_or_else(|| &[]).to_vec();
+
+        iter.for_each(|slice| BlockSHA1::new(&chunky(slice)).process(self));
     }
 
     /// #RETURNS
     ///
     /// A 32 bytes array 
-    pub fn digest(&self) -> [u8; 20] {
-        sha1_arr(&self.variables)
+    pub fn digest(&mut self) {
+        padding(&self.leftover, self.size).iter()
+            .for_each(|raw_block| BlockSHA1::new(raw_block).process(self));
     }
 
     pub fn digest_string(&self) -> String {
         self.variables.iter().map(|x| format!("{:08x}", x)).collect::<String>()
+    }
+
+    pub fn digest_arr(&self) -> [u8; 20] {
+        sha1_arr(&self.variables)
     }
 }

@@ -4,7 +4,7 @@ mod sha1 {
     use crate::bits::Bits;
     use crate::sha::Sha1;
 
-    macro_rules! sha1_tests {
+    macro_rules! functionnal_tests {
         ($($name:ident: $args:expr,)*) => {
             $(
                 #[test]
@@ -12,13 +12,44 @@ mod sha1 {
                     let (data, expected) = $args;
                     let mut sha:Sha1 = Sha1::new();
                     sha.update(&data.as_bytes());
+                    sha.digest();
                     let result = sha.digest_string();
                     assert_eq!(result, expected);
                 }
             )*
         }
     }
-    sha1_tests! {
+    macro_rules! split_tests {
+        ($($name:ident: $args:expr,)*) => {
+            $(
+                #[test]
+                fn $name() {
+                    let (data, expected) = $args;
+                    let mut sha:Sha1 = Sha1::new();
+
+                    data.as_bytes().chunks(12)
+                        .for_each(|slice| sha.update(&slice));
+
+                    sha.digest();
+                    let result = sha.digest_string();
+                    assert_eq!(result, expected);
+                }
+            )*
+        }
+    }
+
+
+    split_tests! {
+        split: (
+        "leteamsestpas laeton est lundi ca debug le sha256 en bien",
+        "e2e0aa8a8a5e0c71c8c7f2222ac09b2d4ed2ac25"
+        ),
+        long: (
+        "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "345cca26ce8b9db606c24ae853ec4010883262f8"
+        ),
+    }
+    functionnal_tests! {
         arbitrary_text: (
         "leteamsestpas laeton est lundi ca debug le sha256 en bien",
         "e2e0aa8a8a5e0c71c8c7f2222ac09b2d4ed2ac25"
@@ -68,15 +99,8 @@ mod sha256 {
                     let (path, expected) = $args;
                     let mut sha:Sha256 = Sha256::new();
 
-                    let mut content = fs::read_to_string(path)
+                    let content = fs::read_to_string(path)
                         .expect("failed to read");
-
-                    content.pop();
-                    let ch = content.pop().unwrap();
-
-                    if ch != '\r' {
-                        content.push(ch);
-                    }
                     
                     sha.update(&content.as_bytes());
                     let result = sha.digest_string();
@@ -86,25 +110,25 @@ mod sha256 {
             )*
         }
     }
-
+ 
+    // tool used for checking hash values
+    // https://emn178.github.io/online-tools/sha256_checksum.html
     test_from_files! {
-        /*
         lorem: (
         "src/testsuite/lorem.txt",
-        "33fd1906bd900f30454ce0e7ec717c04bfcbe466fa3a081c2e5659c0074b9f4b"
+        "c47562e9a9c8d50170e6f9a56dae03ac37028560cbd9a70708a33241b38f2c06"
         ),
-        */
         verif: (
         "src/testsuite/verif.txt",
-        "7b25bc0efdad46daec550347cf8f542d1ecca231ccb5c3877778a9b94cea498f"
+        "80b4486094df240d69161c616650633dadf587cfc1da7b47851baf30a711fe3c"
         ),
         medium_size: (
         "src/testsuite/medium.txt",
-        "5fcf5b38ef138ca8f83f827a6e4c323020bb9576a566fef793ce30a87f10ae16"
+        "f09aebda3af1b9597248d028c39d292ab23e67785ed317582554d14efa207fc6"
         ),
         medium_plus: (
         "src/testsuite/medium_plus.txt",
-        "2997c402eb89d77fc28e08479542a2215bb6218a926b3c290ea07980f29b8b18"
+        "36f68b00c246ad9f689b6987d31cef7994b4f0a8fb5fc2b6d9abb90ddb70462a"
         ),
     }
 
@@ -148,6 +172,10 @@ mod sha256 {
         tricky_padding_length: (
         "cccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
         "f6c7b87acd114115d66897c8cb138c16a8b886673d1b93737f4918be472ea878"
+        ),
+        lots_of_c: (
+        "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "b9defaed1cf0009ea9e17a221356b92483696dbefc9954522348cd796814ed9b"
         ),
         arbitrary_length: (
         "leteamsestpas laeton est lundi ca debug le sha256 en bien",
