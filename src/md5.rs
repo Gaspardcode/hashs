@@ -1,5 +1,5 @@
-pub mod utils;
 pub mod nb_utils;
+pub mod utils;
 use crate::md5::nb_utils::*;
 use crate::md5::utils::*;
 pub use crate::sha::utils::*;
@@ -20,13 +20,13 @@ impl Block {
         let mut g: u32;
 
         for i in 0..64 {
-            if (i < 16) {
+            if i < 16 {
                 F = op1(new_state[1], new_state[2], new_state[1], new_state[3]);
                 g = i;
-            } else if (i < 32) {
+            } else if i < 32 {
                 F = op1(new_state[3], new_state[1], new_state[3], new_state[2]);
                 g = (5 * i + 1) % 16;
-            } else if (i < 48) {
+            } else if i < 48 {
                 F = op2(new_state[1], new_state[2], new_state[3]);
                 g = (3 * i + 5) % 16;
             } else {
@@ -34,7 +34,10 @@ impl Block {
                 g = (7 * i) % 16;
             }
 
-            F = (F as u64 + new_state[0] as u64 + k_md5[i as usize] as u64 + self.data[g as usize] as u64) as u32;
+            F = (F as u64
+                + new_state[0] as u64
+                + k_md5[i as usize] as u64
+                + self.data[g as usize] as u64) as u32;
 
             new_state[0] = new_state[3];
             new_state[3] = new_state[2];

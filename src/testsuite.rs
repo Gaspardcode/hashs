@@ -37,7 +37,6 @@ mod sha1 {
         }
     }
 
-
     split_tests! {
         split: (
         "leteamsestpas laeton est lundi ca debug le sha256 en bien",
@@ -100,18 +99,18 @@ mod sha256 {
 
                     let content = fs::read_to_string(path)
                         .expect("failed to read");
-                    
+
                     sha.update(&content.as_bytes());
                     sha.digest();
 
                     let result = sha.digest_string();
-                    
+
                     assert_eq!(result, expected);
                 }
             )*
         }
     }
- 
+
     // tool used for checking hash values
     // https://emn178.github.io/online-tools/sha256_checksum.html
     test_from_files! {
@@ -147,15 +146,15 @@ mod sha256 {
         "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
         ),
         simple_small: (
-        "abc", 
+        "abc",
         "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"
         ),
         simple_chill: (
-        "a", 
+        "a",
         "ca978112ca1bbdcafac231b39a23dc4da786eff8147c4e72b9807785afee48bb"
         ),
         numbers: (
-        "0987654321", 
+        "0987654321",
         "17756315ebd47b7110359fc7b168179bf6f2df3646fcc888bc8aa05c78b38ac1"
         ),
         simple_classic: (
@@ -189,12 +188,10 @@ mod sha256 {
     }
 }
 
-
-
 mod md5 {
+
     use super::*;
-    use crate::md5::Md5;
-    use std::fs;
+    use crate::Md5;
 
     macro_rules! md5_tests {
         ($($name:ident: $args:expr,)*) => {
@@ -222,20 +219,19 @@ mod md5 {
 
                     let content = fs::read_to_string(path)
                         .expect("failed to read");
-                    
+
                     md5.update(&content.as_bytes());
                     md5.digest();
 
                     let result = md5.digest_string();
-                    
+
                     assert_eq!(result, expected);
                 }
             )*
         }
     }
- 
-    test_from_files! {
-    }
+
+    test_from_files! {}
 
     md5_tests! {
         fox: (
