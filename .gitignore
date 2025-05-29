@@ -1,0 +1,21 @@
+*.lock
+target
+debug
+doc
+.cargo
+build
+llvm
+mingw-build
+
+# RUST TOOLS
+
+**/*.rs.bk
+
+# EDITORS
+
+**/*.swp
+**/*.swn
+**/*.swo
+**/*.swa
+.vscode
+.idea
