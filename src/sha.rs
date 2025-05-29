@@ -1,5 +1,5 @@
 mod nb_utils;
-mod utils;
+pub mod utils;
 use crate::sha::nb_utils::*;
 use crate::sha::utils::*;
 
@@ -47,7 +47,7 @@ impl BlockSHA1 {
     }
     fn process(&self, sha: &mut Sha1)
     {
-        let mut vu = sha.variables;
+        let mut vu = sha.state;
         for i in 0..80 {
 
             // TEMP = S^5(A) + f(t;B,C,D) + E + W(t) + K(t);
@@ -66,7 +66,7 @@ impl BlockSHA1 {
         }
 
         for i in 0..5 {
-            sha.variables[i] = ((sha.variables[i] as u64) + (vu[i] as u64)) as u32;
+            sha.state[i] = ((sha.state[i] as u64) + (vu[i] as u64)) as u32;
         }
     }
 }
@@ -103,35 +103,41 @@ impl Block {
     }
     fn process(&self, sha: &mut Sha256)
     {
-        let mut vu = sha.variables;
+        let mut shuffled_state = sha.state;
         for i in 0..64 {
 
-            let t1 = ( vu[7] as u64 
-                     + (sigma1(vu[4]) as u64)
-                     + (ch(vu[4],vu[5],vu[6]) as u64)
+            let t1 = shuffled_state[7] as u64 
+                     + (sigma1(shuffled_state[4]) as u64)
+                     + (ch(shuffled_state[4],shuffled_state[5],shuffled_state[6]) as u64)
                      + (constants_k[i] as u64)
-                     + (self.sub_blocks[i] as u64));
+                     + (self.sub_blocks[i] as u64);
 
-            let t2 = ((sigma0(vu[0]) as u64) + (maj(vu[0],vu[1],vu[2]) as u64));
+            let t2 = ((sigma0(shuffled_state[0]) as u64) + (maj(shuffled_state[0],shuffled_state[1],shuffled_state[2]) as u64));
 
             for j in (1..8).rev() {
-                vu[j] = vu[j - 1];
+                shuffled_state[j] = shuffled_state[j - 1];
             }
 
-            vu[4] = ((vu[4] as u64) + t1) as u32;
-            vu[0] = (t1 + t2) as u32;
+            shuffled_state[4] = ((shuffled_state[4] as u64) + t1) as u32;
+            shuffled_state[0] = (t1 + t2) as u32;
         }
 
         for i in 0..8 {
-            sha.variables[i] = ((sha.variables[i] as u64) + (vu[i] as u64)) as u32;
+            sha.state[i] = ((sha.state[i] as u64) + (shuffled_state[i] as u64)) as u32;
         }
     }
 }
 
 #[derive(Debug, Clone)]
 pub struct Sha256 {
-    variables: [u32;8], // fixed size of 8 : [a,b,c,d,e,f,g,h] in the paper
-    size: usize, // the number of blocks processed
+    state: [u32;8], // [a,b,c,d,e,f,g,h] in the paper
+    size: usize, // the number of blocks processed so far
+    // scenario: the user hashs a message whom the size is not a multiple of 512,
+    // in the regular case the leftovers are padded
+    // However here, we let the user the choice to add more data to the hash
+    // hence we store them here until :
+    // 1. the user digests the hash
+    // 2. the user adds data to the hash
     leftover: Vec<u8>
 }
 
@@ -139,11 +145,11 @@ impl Sha256 {
     pub fn new() -> Sha256
     {
         let size = 0;
-        let variables = sha256_init.clone();
+        let state = sha256_init.clone();
         let leftover = vec![];
 
         Sha256 {
-            variables,
+            state,
             size,
             leftover
         }
@@ -166,7 +172,7 @@ impl Sha256 {
     ///
     /// A 32 bytes array 
     pub fn digest_arr(&self) -> [u8; 32] {
-        arru32_to_u8(&self.variables)
+        arru32_to_u8(&self.state)
     }
 
     pub fn digest(&mut self) {
@@ -175,13 +181,20 @@ impl Sha256 {
     }
 
     pub fn digest_string(&self) -> String {
-        self.variables.iter().map(|x| format!("{:08x}", x)).collect::<String>()
+        self.state.iter().map(|x| format!("{:08x}", x)).collect::<String>()
+    }
+
+    pub fn clear(&mut self)
+    {
+        self.size = 0;
+        self.state = sha256_init.clone();
+        self.leftover = vec![];
     }
 }
 
 #[derive(Debug, Clone)]
 pub struct Sha1 {
-    variables: [u32;5], // fixed size of 8 : [a,b,c,d,e] in the paper
+    state: [u32;5], // fixed size of 8 : [a,b,c,d,e] in the paper
     size: usize, // the number of blocks processed
     leftover: Vec<u8>,
 }
@@ -190,11 +203,11 @@ impl Sha1 {
     pub fn new() -> Sha1
     {
         let size = 0;
-        let variables = sha1_init.clone();
+        let state = sha1_init.clone();
         let leftover = vec![];
 
         Sha1 {
-            variables,
+            state,
             size,
             leftover,
         }
@@ -222,10 +235,10 @@ impl Sha1 {
     }
 
     pub fn digest_string(&self) -> String {
-        self.variables.iter().map(|x| format!("{:08x}", x)).collect::<String>()
+        self.state.iter().map(|x| format!("{:08x}", x)).collect::<String>()
     }
 
     pub fn digest_arr(&self) -> [u8; 20] {
-        sha1_arr(&self.variables)
+        sha1_arr(&self.state)
     }
 }

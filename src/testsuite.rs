@@ -188,3 +188,63 @@ mod sha256 {
         ),
     }
 }
+
+
+
+mod md5 {
+    use super::*;
+    use crate::md5::Md5;
+    use std::fs;
+
+    macro_rules! md5_tests {
+        ($($name:ident: $args:expr,)*) => {
+            $(
+                #[test]
+                fn $name() {
+                    let (data, expected) = $args;
+                    let mut md5:Md5 = Md5::new();
+                    md5.update(&data.as_bytes());
+                    md5.digest();
+                    let result = md5.digest_string();
+                    assert_eq!(result, expected);
+                }
+            )*
+        }
+    }
+
+    macro_rules! test_from_files {
+        ($($name:ident: $args:expr,)*) => {
+            $(
+                #[test]
+                fn $name() {
+                    let (path, expected) = $args;
+                    let mut md5:Md5 = Md5::new();
+
+                    let content = fs::read_to_string(path)
+                        .expect("failed to read");
+                    
+                    md5.update(&content.as_bytes());
+                    md5.digest();
+
+                    let result = md5.digest_string();
+                    
+                    assert_eq!(result, expected);
+                }
+            )*
+        }
+    }
+ 
+    test_from_files! {
+    }
+
+    md5_tests! {
+        fox: (
+        "The quick brown fox jumps over the lazy dog",
+        "9e107d9d372bb6826bd81d3542a419d6"
+        ),
+        empty: (
+        "",
+        "d41d8cd98f00b204e9800998ecf8427e"
+        ),
+    }
+}
