@@ -21,16 +21,16 @@ impl Block {
 
         for i in 0..64 {
             if i < 16 {
-                F = op1(new_state[1], new_state[2], new_state[1], new_state[3]);
+                F = op1(new_state[1], new_state[2], new_state[3] );
                 g = i;
             } else if i < 32 {
-                F = op1(new_state[3], new_state[1], new_state[3], new_state[2]);
+                F = op1(new_state[3], new_state[1], new_state[2]);
                 g = (5 * i + 1) % 16;
             } else if i < 48 {
                 F = op2(new_state[1], new_state[2], new_state[3]);
                 g = (3 * i + 5) % 16;
             } else {
-                F = op3(new_state[2], new_state[1], new_state[3]);
+                F = op3(new_state[1], new_state[2], new_state[3]);
                 g = (7 * i) % 16;
             }
 
@@ -42,7 +42,7 @@ impl Block {
             new_state[0] = new_state[3];
             new_state[3] = new_state[2];
             new_state[2] = new_state[1];
-            new_state[1] = rotL(F, s_md5[i as usize]);
+            new_state[1] = (new_state[1] as u64 + rotL(F, s_md5[i as usize])as u64) as u32;
         }
 
         for i in 0..4 {

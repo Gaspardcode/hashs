@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod sha1 {
-    use super::*;
+    
     use crate::sha::Sha1;
 
     macro_rules! functionnal_tests {
@@ -69,7 +69,7 @@ mod sha1 {
 
 #[cfg(test)]
 mod sha256 {
-    use super::*;
+    
     use crate::sha::Sha256;
     use std::fs;
 
@@ -190,8 +190,8 @@ mod sha256 {
 
 mod md5 {
 
-    use super::*;
-    use crate::Md5;
+   use super::*; 
+   use crate::Md5; 
 
     macro_rules! md5_tests {
         ($($name:ident: $args:expr,)*) => {
@@ -241,6 +241,26 @@ mod md5 {
         empty: (
         "",
         "d41d8cd98f00b204e9800998ecf8427e"
+        ),
+        abc: (
+        "abc",
+        "900150983cd24fb0d6963f7d28e17f72"
+        ),
+        digits: (
+        "12345678901234567890123456789012345678901234567890123456789012345678901234567890",
+        "57edf4a22be3c955ac49da2e2107b67a"
+        ),
+        message_digest: (
+        "message digest",
+        "f96b697d7cb7938d525a2f31aaf161d0"
+        ),
+        a:(
+            "a",
+            "0cc175b9c0f1b6a831c399e269772661"
+        ),
+        alphabet:(
+            "abcdefghijklmnopqrstuvwxyz",
+            "c3fcd3d76192e4007dfb496cca67e13b"
         ),
     }
 }
